@@ -1,0 +1,83 @@
+---
+title: 'Assignment 1: Loading Data into a Data Frame'
+author: "Khyati Naik"
+date: "`r Sys.Date()`"
+---
+
+## Overview  
+The article is related to response of Americans on whether or not they approve of the way the presidents handled COVID situation. Its been more than 2 years now since the start of the pandemic and there has been various developments such as vaccine rollouts to fight against the pandemic. This article also asks various other related questions such as effect of covid on economy and their concerns about COVID spread etc. To read the article click [here](https://projects.fivethirtyeight.com/coronavirus-polls/).
+
+### Load Packages  
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(RCurl) 
+```
+
+### Read data  
+Following code snippet reads the data file from github and save it in a dataframe named as raw_data.
+```{r}
+home_path <- 'https://raw.githubusercontent.com/Naik-Khyati/'
+data_path <- 'basic-loading-and-transformation/main/data/'
+csv_name <- 'covid_approval_polls'
+file_path <- paste(home_path,data_path,csv_name,'.csv',sep='')
+x <- getURL(file_path) 
+raw_data <- read.csv(text = x)
+dim(raw_data)
+```
+
+### Remove unwanted columns from the dataset  
+```{r}
+col_names <- c('tracking','url','sponsor','text')
+raw_data <- raw_data %>% select(-all_of(col_names))
+dim(raw_data)
+```
+
+
+### Basic analysis before performing data transformation
+Find unique values of population attribute
+```{r}
+unique(raw_data$population)
+```
+
+Find unique values of party attribute
+```{r}
+unique(raw_data$party)
+```
+
+
+### Replace values of population and party variables
+Below code snippet uses case_when statement to replace values in population and party variables.
+```{r}
+raw_data$population <- case_when(
+  raw_data$population == "a" ~ "Adult",
+  raw_data$population == "rv" ~ "Registered Voter",
+  raw_data$population == "lv" ~ "Likely Voter",
+  raw_data$population == "v" ~ "Voter"
+)
+
+raw_data$party <- case_when(
+  raw_data$party == "all" ~ "All parties",
+  raw_data$party == "R" ~ "Republic",
+  raw_data$party == "D" ~ "Democrat",
+  raw_data$party == "I" ~ "Independent",
+)
+
+glimpse(raw_data)
+```
+
+### Create chart for Bidens approval
+Below code snippet first converts the date which is read as character into date type and then aggregates the data by end date to calculate the average approval score for Biden. it uses that data to create a line chart for Bidens approval score.
+```{r}
+raw_data$end_date <- as.Date(raw_data$end_date, "%Y-%m-%d")
+
+chart_data <- raw_data %>% filter(subject=='Biden') %>% group_by(end_date) %>%
+  summarise(mean_approval = mean(approve))
+ggplot(chart_data, aes(x=end_date, y=mean_approval)) +
+  geom_line()
+
+```
+
+
+## Conclusion
+The article shows that overall Biden has approval of 49.7% for handling of the coronavirus outbreak. However, approvals varies widely by the parties. Most democrats approve (83.2%) of Bidens response; but only 17.2% of republicans were satisfied with Bidens response. Independents fell in the middle with about 44% approval of Bidens response. Similarly, article also shows that about 24% of Americans are extremely concerned about getting infected with coronavirus. Lastly, about 49% of Americans are worried about the state of the US economy.
+
